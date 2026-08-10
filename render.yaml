@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: channel-hub
+    name: telegram-ai-content-manager
     runtime: python
     buildCommand: pip install .
     startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
@@ -8,11 +8,11 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: channel-hub-db
+          name: telegram-ai-content-manager-db
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
 databases:
-  - name: channel-hub-db
-    databaseName: channel_hub
-    user: channel_hub
+  - name: telegram-ai-content-manager-db
+    databaseName: telegram_ai_content_manager
+    user: telegram_ai_content_manager
