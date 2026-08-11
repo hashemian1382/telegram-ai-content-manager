@@ -6,7 +6,82 @@ Built and maintained by **Ali Hashemian**.
 
 > This repository is intentionally designed around editorial control: AI output is saved as a draft first, and a person must explicitly approve publication.
 
-## What is included today
+---
+
+## 🚀 شروع سریع (Quick start)
+
+تنها کافیست این سه دستور را اجرا کنید — اسکریپت `start.sh` همهچیز را خودکار نصب و اجرا میکند (ساخت `venv`، نصب وابستگیها، ساخت `.env` و اجرای برنامه):
+
+```bash
+git clone https://github.com/hashemian1382/telegram-ai-content-manager.git
+cd telegram-ai-content-manager
+./start.sh
+```
+
+سپس در مرورگر باز کنید: **http://localhost:5000**
+
+> ⚙️ فقط برای استفاده از امکانات Telegram و Gemini، مقدارهای `TELEGRAM_BOT_TOKEN`، `TELEGRAM_CHANNEL_ID` و `GEMINI_API_KEY` را در فایل `.env` وارد کنید.
+
+---
+
+## One-command script (`start.sh`)
+
+The script detects what is missing (virtual environment, dependencies, `.env`) and handles it automatically, so the same commands work on your laptop, WSL, GitHub Codespaces, and other cloud dev environments.
+
+| Command | What it does |
+| --- | --- |
+| `./start.sh` | Install (if needed) and start the dev server |
+| `./start.sh install` | Create `.venv`, install app + dev dependencies, create `.env` |
+| `./start.sh run` | Start the dev server (auto-installs first) |
+| `./start.sh test` | Run the test suite |
+| `./start.sh lint` | Run the Ruff linter |
+| `./start.sh help` | Show usage help |
+
+Optional: `PYTHON_BIN=python3.12 ./start.sh` to force a specific interpreter.
+
+## Manual setup (if you prefer not to use the script)
+
+```bash
+git clone https://github.com/hashemian1382/telegram-ai-content-manager.git
+cd telegram-ai-content-manager
+python -m venv .venv
+source .venv/bin/activate        # Windows (Git Bash): source .venv/Scripts/activate
+pip install -e '.[dev]'
+cp .env.example .env             # then edit .env
+python run.py
+```
+
+Open [http://localhost:5000](http://localhost:5000).
+
+## GitHub Codespaces (zero-setup cloud environment)
+
+1. Open the repository on GitHub and click **Code → Codespaces → Create codespace on master**
+   — or open this URL directly: <https://codespaces.new/hashemian1382/telegram-ai-content-manager>
+2. The dev container (`/.devcontainer`) automatically runs `./start.sh install`, so dependencies are ready the moment the workspace loads.
+3. Start the app with `./start.sh run` and open the forwarded **port 5000** (VS Code prompts you automatically).
+
+## Environment variables
+
+Copy `.env.example` to `.env` and fill in what you need. **Never commit `.env`.** All values are optional; the app runs with none of them (minus AI/Telegram features).
+
+| Variable | Required for | Description | Default |
+| --- | --- | --- | --- |
+| `SECRET_KEY` | Production | Random secret for session signing. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` | `change-me-in-production` |
+| `DATABASE_URL` | Production | SQLAlchemy URL. SQLite locally (file lives in `instance/`, gitignored), PostgreSQL on Render/Neon. `postgres://`/`postgresql://` URLs are normalized automatically for Psycopg 3 | `sqlite:///telegram_ai_content_manager.db` |
+| `TELEGRAM_BOT_TOKEN` | Publishing | Bot token from [@BotFather](https://t.me/BotFather) | — |
+| `TELEGRAM_CHANNEL_ID` | Publishing | Target channel `@username` or numeric chat id (bot must be an admin) | — |
+| `GEMINI_API_KEY` | AI drafting | API key from <https://aistudio.google.com/apikey> | — |
+| `GEMINI_MODELS` | AI drafting | Comma-separated model list offered in the UI | `gemini-2.5-flash,gemini-2.5-flash-lite` |
+| `SCRAPER_LIMIT` | — | Latest public posts fetched per channel per run | `10` |
+| `SCRAPER_TIMEOUT` | — | Per-channel scrape timeout in seconds | `20` |
+
+### Get a Telegram bot token in one minute
+
+1. Message [@BotFather](https://t.me/BotFather) and run `/newbot`.
+2. Copy the API token into `TELEGRAM_BOT_TOKEN`.
+3. Add the bot as **administrator** of your target channel and put the channel `@username` (or numeric id) into `TELEGRAM_CHANNEL_ID`.
+
+## What is included
 
 - Register public Telegram source channels and collect their currently accessible posts into a SQL database
 - Store source text, post links, timestamps, media flags, and collection-run results
@@ -15,6 +90,7 @@ Built and maintained by **Ali Hashemian**.
 - Publish an approved text draft with the Telegram Bot API
 - RTL Persian dashboard, JSON API, health check, tests, GitHub Actions CI, and Render blueprint
 - SQLite for local development and PostgreSQL for Render or other hosted environments
+- One-command setup script (`start.sh`) and GitHub Codespaces support
 
 ## Planned extensions
 
@@ -33,40 +109,13 @@ The project structure keeps room for additional providers and workflows. These a
 - A Gemini API key (only for AI generation)
 - PostgreSQL for production deployments; SQLite is used by default locally
 
-## Run locally
+## Development commands
 
 ```bash
-git clone https://github.com/hashemian1382/telegram-ai-content-manager.git
-cd telegram-ai-content-manager
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -e '.[dev]'
-cp .env.example .env
-python run.py
-```
-
-Open [http://localhost:5000](http://localhost:5000). Configure the variables you need in `.env`; never commit that file.
-
-### Environment variables
-
-```env
-SECRET_KEY=replace-with-a-long-random-secret
-DATABASE_URL=sqlite:///telegram_ai_content_manager.db
-
-TELEGRAM_BOT_TOKEN=your-bot-token
-TELEGRAM_CHANNEL_ID=@your_channel
-
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODELS=gemini-2.5-flash,gemini-2.5-flash-lite
-
-SCRAPER_LIMIT=10
-SCRAPER_TIMEOUT=20
-```
-
-For PostgreSQL, set a SQLAlchemy-compatible URL. Standard Render/Neon-style `postgres://` and `postgresql://` URLs are normalized automatically for Psycopg 3:
-
-```env
-DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+./start.sh test        # or: pytest -q
+./start.sh lint        # or: ruff check .
+./start.sh run         # dev server on http://localhost:5000
+gunicorn wsgi:app --bind 0.0.0.0:8000 --workers 2 --timeout 120   # production-style local run
 ```
 
 ## Deploy on Render
@@ -82,14 +131,6 @@ The production command is also available in `Procfile`:
 
 ```bash
 gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
-```
-
-## Development commands
-
-```bash
-pytest -q
-ruff check .
-gunicorn wsgi:app --bind 0.0.0.0:8000 --workers 2 --timeout 120
 ```
 
 ## API
@@ -120,7 +161,10 @@ telegram_ai_content_manager/
   routes.py                 Web and JSON API routes
 tests/                      External-call-free tests
 .github/workflows/ci.yml    Test and lint workflow
+.devcontainer/              GitHub Codespaces configuration
+start.sh                    One-command setup & run script
 .env.example                Safe configuration template
+.gitignore
 render.yaml                 Render Blueprint
 wsgi.py                     Production entry point
 ```

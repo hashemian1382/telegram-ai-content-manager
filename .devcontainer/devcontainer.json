@@ -1,0 +1,20 @@
+{
+  "name": "Telegram AI Content Manager",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "bash ./start.sh install",
+  "forwardPorts": [5000],
+  "portsAttributes": {
+    "5000": {
+      "label": "App",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "charliermarsh.ruff"],
+      "settings": {
+        "python.defaultInterpreterPath": ".venv/bin/python"
+      }
+    }
+  }
+}
