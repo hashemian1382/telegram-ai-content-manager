@@ -1,4 +1,8 @@
-"""Local development entry point."""
+"""Single application entry point.
+
+Development:  python app.py        (or: flask run, or: ./start.sh)
+Production:   gunicorn app:app
+"""
 
 from telegram_ai_content_manager import create_app
 

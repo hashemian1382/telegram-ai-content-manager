@@ -1,1 +1,65 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Telegram AI Content Manager</title><link rel="stylesheet" href="/static/app.css"></head><body><main><header><div><p class="eyebrow">TELEGRAM CONTENT WORKSPACE</p><h1>Telegram AI Content Manager</h1><p class="subtitle">جمع‌آوری، انتخاب و انتشار محتوای کانال</p></div><button class="primary" onclick="scrape()">↻ دریافت پست‌ها</button></header><section class="stats" id="stats"></section><section class="grid"><article class="panel"><div class="title"><h2>کانال‌های منبع</h2><span id="channelCount"></span></div><form onsubmit="addChannel(event)"><input id="channel" placeholder="@public_channel یا https://t.me/channel" required><button>افزودن</button></form><div id="channels" class="list"></div></article><article class="panel draft"><div class="title"><h2>تولید پست</h2><span class="status">Draft studio</span></div><p class="muted">یک پست متنی به‌طور تصادفی از دیتابیس انتخاب می‌شود، قابل ویرایش است و فقط با تأیید شما منتشر می‌شود.</p><div class="create-tabs"><button class="secondary" onclick="showMode('direct')">نوشتن مستقیم</button><button class="secondary" onclick="showMode('ai')">تولید با AI</button><button class="secondary" onclick="randomDraft()">انتخاب تصادفی</button></div><div id="creation"></div><div id="composer" class="empty">هنوز پیش‌نویسی انتخاب نشده است.</div></article></section><section class="panel"><div class="title"><h2>پیش‌نویس‌های اخیر</h2></div><div id="drafts" class="draft-list"></div></section></main><div id="toast"></div><script src="/static/app.js"></script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Telegram AI Content Manager</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">TELEGRAM CONTENT WORKSPACE</p>
+          <h1>Telegram AI Content Manager</h1>
+          <p class="subtitle">جمع‌آوری، انتخاب و انتشار محتوای کانال</p>
+        </div>
+        <button class="primary" onclick="scrape()">↻ دریافت پست‌ها</button>
+      </header>
+      <section class="stats" id="stats"></section>
+      <section class="grid">
+        <article class="panel">
+          <div class="title">
+            <h2>کانال‌های منبع</h2>
+            <span id="channelCount"></span>
+          </div>
+          <form onsubmit="addChannel(event)">
+            <input
+              id="channel"
+              placeholder="@public_channel یا https://t.me/channel"
+              required
+            /><button>افزودن</button>
+          </form>
+          <div id="channels" class="list"></div>
+        </article>
+        <article class="panel draft">
+          <div class="title">
+            <h2>تولید پست</h2>
+            <span class="status">Draft studio</span>
+          </div>
+          <p class="muted">
+            یک پست متنی به‌طور تصادفی از دیتابیس انتخاب می‌شود، قابل ویرایش است
+            و فقط با تأیید شما منتشر می‌شود.
+          </p>
+          <div class="create-tabs">
+            <button class="secondary" onclick="showMode('direct')">
+              نوشتن مستقیم</button
+            ><button class="secondary" onclick="showMode('ai')">
+              تولید با AI</button
+            ><button class="secondary" onclick="randomDraft()">
+              انتخاب تصادفی
+            </button>
+          </div>
+          <div id="creation"></div>
+          <div id="composer" class="empty">هنوز پیش‌نویسی انتخاب نشده است.</div>
+        </article>
+      </section>
+      <section class="panel">
+        <div class="title"><h2>پیش‌نویس‌های اخیر</h2></div>
+        <div id="drafts" class="draft-list"></div>
+      </section>
+    </main>
+    <div id="toast"></div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

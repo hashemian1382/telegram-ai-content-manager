@@ -1,9 +1,13 @@
+"""Database setup and SQLAlchemy models."""
+
 from datetime import UTC, datetime
 
-from .extensions import db
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
 
 
-def utcnow():
+def utcnow() -> datetime:
     return datetime.now(UTC)
 
 

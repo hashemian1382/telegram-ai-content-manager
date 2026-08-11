@@ -1,8 +1,9 @@
+"""Web dashboard and JSON API routes."""
+
 from flask import Blueprint, current_app, jsonify, render_template, request
 from sqlalchemy import desc
 
-from .extensions import db
-from .models import Draft, SourceChannel, SourcePost
+from .models import Draft, SourceChannel, SourcePost, db
 from .services import (
     create_direct_draft,
     create_random_draft,
@@ -11,6 +12,7 @@ from .services import (
     publish_draft,
     run_scrape,
     source_candidates,
+    validate_text,
 )
 
 api = Blueprint("api", __name__)
@@ -40,6 +42,10 @@ def channel_payload(channel):
 
 def error(message, status=400):
     return jsonify({"error": message}), status
+
+
+def request_json():
+    return request.get_json(silent=True) or {}
 
 
 @web.get("/")
@@ -74,7 +80,7 @@ def channels():
             [channel_payload(item) for item in SourceChannel.query.order_by(SourceChannel.username)]
         )
     try:
-        username = normalize_channel((request.get_json(silent=True) or {}).get("username"))
+        username = normalize_channel(request_json().get("username"))
     except ValueError as exc:
         return error(str(exc))
     if SourceChannel.query.filter_by(username=username).first():
@@ -96,7 +102,9 @@ def remove_channel(channel_id):
 @api.post("/api/scrape")
 def scrape():
     try:
-        return jsonify(run_scrape(current_app.config["SCRAPER_LIMIT"]))
+        return jsonify(
+            run_scrape(current_app.config["SCRAPER_LIMIT"], current_app.config["SCRAPER_TIMEOUT"])
+        )
     except Exception as exc:
         current_app.logger.exception("Scrape failed")
         return error(str(exc), 500)
@@ -120,9 +128,7 @@ def drafts():
 @api.post("/api/drafts/direct")
 def direct_draft():
     try:
-        return jsonify(
-            draft_payload(create_direct_draft((request.get_json(silent=True) or {}).get("text")))
-        ), 201
+        return jsonify(draft_payload(create_direct_draft(request_json().get("text")))), 201
     except ValueError as exc:
         return error(str(exc))
 
@@ -137,19 +143,16 @@ def random_draft():
 
 @api.post("/api/drafts/generate")
 def generated_draft():
-    data = request.get_json(silent=True) or {}
+    data = request_json()
     try:
-        return jsonify(
-            draft_payload(
-                generate_with_gemini(
-                    data.get("topic"),
-                    data.get("model"),
-                    data.get("source_post_ids", []),
-                    data.get("tone", "professional"),
-                    data.get("length", "medium"),
-                )
-            )
-        ), 201
+        draft = generate_with_gemini(
+            data.get("topic"),
+            data.get("model"),
+            data.get("source_post_ids", []),
+            data.get("tone", "professional"),
+            data.get("length", "medium"),
+        )
+        return jsonify(draft_payload(draft)), 201
     except ValueError as exc:
         return error(str(exc))
 
@@ -157,12 +160,12 @@ def generated_draft():
 @api.patch("/api/drafts/<int:draft_id>")
 def update_draft(draft_id):
     draft = db.get_or_404(Draft, draft_id)
-    text = (request.get_json(silent=True) or {}).get("text", "").strip()
     if draft.status == "published":
         return error("Published drafts cannot be changed.", 409)
-    if not text or len(text) > 4096:
-        return error("Text must contain 1 to 4096 characters.")
-    draft.text = text
+    try:
+        draft.text = validate_text(request_json().get("text"))
+    except ValueError as exc:
+        return error(str(exc))
     db.session.commit()
     return jsonify(draft_payload(draft))
 

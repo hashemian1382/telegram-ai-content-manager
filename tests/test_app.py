@@ -1,8 +1,7 @@
 import pytest
 
 from telegram_ai_content_manager import create_app
-from telegram_ai_content_manager.extensions import db
-from telegram_ai_content_manager.models import SourceChannel, SourcePost
+from telegram_ai_content_manager.models import SourceChannel, SourcePost, db
 
 
 @pytest.fixture
@@ -46,9 +45,7 @@ def test_gemini_draft_is_persisted(client, monkeypatch):
             return {"candidates": [{"content": {"parts": [{"text": "پست تولیدشده"}]}}]}
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setattr(
-        "telegram_ai_content_manager.services.content.httpx.post", lambda *args, **kwargs: Response()
-    )
+    monkeypatch.setattr("telegram_ai_content_manager.services.httpx.post", lambda *args, **kwargs: Response())
     response = client.post(
         "/api/drafts/generate", json={"topic": "علم", "model": "gemini-2.5-flash", "source_post_ids": [1]}
     )

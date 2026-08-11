@@ -8,10 +8,21 @@ version = "0.1.0"
 description = "A Telegram content workflow with source collection, AI drafting, and controlled publishing."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["Flask>=3.1,<4", "Flask-SQLAlchemy>=3.1,<4", "SQLAlchemy>=2.0,<3", "httpx>=0.28,<1", "beautifulsoup4>=4.13,<5", "gunicorn>=23,<24", "psycopg[binary]>=3.2,<4"]
+dependencies = [
+    "Flask>=3.1,<4",
+    "Flask-SQLAlchemy>=3.1,<4",
+    "SQLAlchemy>=2.0,<3",
+    "httpx>=0.28,<1",
+    "beautifulsoup4>=4.13,<5",
+    "gunicorn>=23,<24",
+    "psycopg[binary]>=3.2,<4",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.8"]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -23,3 +34,6 @@ target-version = "py311"
 
 [tool.setuptools.packages.find]
 include = ["telegram_ai_content_manager*"]
+
+[tool.setuptools.package-data]
+telegram_ai_content_manager = ["templates/*.html", "static/*"]

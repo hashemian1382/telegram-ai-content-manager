@@ -10,7 +10,7 @@ Built and maintained by **Ali Hashemian**.
 
 ## 🚀 شروع سریع (Quick start)
 
-تنها کافیست این سه دستور را اجرا کنید — اسکریپت `start.sh` همهچیز را خودکار نصب و اجرا میکند (ساخت `venv`، نصب وابستگیها، ساخت `.env` و اجرای برنامه):
+فقط کافی است این سه دستور را اجرا کنید — اسکریپت `start.sh` در اولین اجرا خودش محیط مجازی را می‌سازد، وابستگی‌ها را نصب می‌کند، فایل `.env` را آماده می‌کند و برنامه را اجرا می‌کند:
 
 ```bash
 git clone https://github.com/hashemian1382/telegram-ai-content-manager.git
@@ -22,42 +22,36 @@ cd telegram-ai-content-manager
 
 > ⚙️ فقط برای استفاده از امکانات Telegram و Gemini، مقدارهای `TELEGRAM_BOT_TOKEN`، `TELEGRAM_CHANNEL_ID` و `GEMINI_API_KEY` را در فایل `.env` وارد کنید.
 
----
-
-## One-command script (`start.sh`)
-
-The script detects what is missing (virtual environment, dependencies, `.env`) and handles it automatically, so the same commands work on your laptop, WSL, GitHub Codespaces, and other cloud dev environments.
+## The `start.sh` script
 
 | Command | What it does |
 | --- | --- |
-| `./start.sh` | Install (if needed) and start the dev server |
+| `./start.sh` | Install (first run only) and start the dev server |
 | `./start.sh install` | Create `.venv`, install app + dev dependencies, create `.env` |
 | `./start.sh run` | Start the dev server (auto-installs first) |
 | `./start.sh test` | Run the test suite |
 | `./start.sh lint` | Run the Ruff linter |
-| `./start.sh help` | Show usage help |
 
-Optional: `PYTHON_BIN=python3.12 ./start.sh` to force a specific interpreter.
+Works on Linux, macOS, GitHub Codespaces, and Windows (Git Bash / WSL). Optional: `PYTHON=python3.12 ./start.sh` to force a specific interpreter.
 
-## Manual setup (if you prefer not to use the script)
+## Manual setup (without the script)
 
 ```bash
 git clone https://github.com/hashemian1382/telegram-ai-content-manager.git
 cd telegram-ai-content-manager
 python -m venv .venv
 source .venv/bin/activate        # Windows (Git Bash): source .venv/Scripts/activate
-pip install -e '.[dev]'
+pip install -e ".[dev]"
 cp .env.example .env             # then edit .env
-python run.py
+python app.py
 ```
 
 Open [http://localhost:5000](http://localhost:5000).
 
 ## GitHub Codespaces (zero-setup cloud environment)
 
-1. Open the repository on GitHub and click **Code → Codespaces → Create codespace on master**
-   — or open this URL directly: <https://codespaces.new/hashemian1382/telegram-ai-content-manager>
-2. The dev container (`/.devcontainer`) automatically runs `./start.sh install`, so dependencies are ready the moment the workspace loads.
+1. Open the repository on GitHub and click **Code → Codespaces → Create codespace on master** — or open <https://codespaces.new/hashemian1382/telegram-ai-content-manager> directly.
+2. The dev container (`/.devcontainer`) automatically runs `./start.sh install`, so dependencies are ready when the workspace loads.
 3. Start the app with `./start.sh run` and open the forwarded **port 5000** (VS Code prompts you automatically).
 
 ## Environment variables
@@ -88,19 +82,8 @@ Copy `.env.example` to `.env` and fill in what you need. **Never commit `.env`.*
 - Write a draft directly, create one from a random saved source post, or generate a Persian draft with Gemini
 - Select saved source posts as context for Gemini, then edit every draft before publication
 - Publish an approved text draft with the Telegram Bot API
-- RTL Persian dashboard, JSON API, health check, tests, GitHub Actions CI, and Render blueprint
-- SQLite for local development and PostgreSQL for Render or other hosted environments
-- One-command setup script (`start.sh`) and GitHub Codespaces support
-
-## Planned extensions
-
-The project structure keeps room for additional providers and workflows. These are **not implemented in the current version**:
-
-- Tavily or other web-search providers
-- Other LLM providers
-- Automated schedules, queues, and publish policies
-- Media generation and attachment publishing
-- Telegram client-based ingestion for channels that cannot be read from the public web preview
+- RTL Persian dashboard, JSON API, health check, tests, GitHub Actions CI, and a Render blueprint
+- SQLite for local development and PostgreSQL for hosted environments
 
 ## Requirements
 
@@ -115,22 +98,22 @@ The project structure keeps room for additional providers and workflows. These a
 ./start.sh test        # or: pytest -q
 ./start.sh lint        # or: ruff check .
 ./start.sh run         # dev server on http://localhost:5000
-gunicorn wsgi:app --bind 0.0.0.0:8000 --workers 2 --timeout 120   # production-style local run
+gunicorn app:app --bind 0.0.0.0:8000 --workers 2 --timeout 120   # production-style local run
 ```
 
 ## Deploy on Render
 
-The included `render.yaml` creates a Web Service and PostgreSQL database.
+The included `render.yaml` creates a Web Service and a PostgreSQL database.
 
 1. Push this repository to GitHub.
 2. In Render, select **New → Blueprint** and choose the repository.
 3. Add these secret environment variables to the Web Service: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`, and `GEMINI_API_KEY`.
 4. Deploy. Render supplies `DATABASE_URL`; the blueprint generates `SECRET_KEY`.
 
-The production command is also available in `Procfile`:
+The same production command is available in `Procfile`:
 
 ```bash
-gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
 ```
 
 ## API
@@ -152,21 +135,22 @@ gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
 ## Repository layout
 
 ```text
+app.py                      Single entry point (dev: python app.py · prod: gunicorn app:app)
+start.sh                    One-command setup & run script
+pyproject.toml              Dependencies and tool configuration
+.env.example                Safe configuration template
+Procfile / render.yaml      Deployment (Heroku-style / Render Blueprint)
 telegram_ai_content_manager/
-  services/                 Collection, drafting, Gemini, and Telegram publishing
+  __init__.py               Application factory
+  config.py                 .env loading and database URL helpers
+  models.py                 Database setup and SQLAlchemy models
+  routes.py                 Web dashboard and JSON API routes
+  services.py               Scraping, Gemini drafting, Telegram publishing
   static/                   Dashboard assets
   templates/                Dashboard template
-  config.py                 Environment and database configuration
-  models.py                 SQLAlchemy models
-  routes.py                 Web and JSON API routes
 tests/                      External-call-free tests
 .github/workflows/ci.yml    Test and lint workflow
 .devcontainer/              GitHub Codespaces configuration
-start.sh                    One-command setup & run script
-.env.example                Safe configuration template
-.gitignore
-render.yaml                 Render Blueprint
-wsgi.py                     Production entry point
 ```
 
 ## Security, editorial, and platform notes

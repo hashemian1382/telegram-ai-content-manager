@@ -1,5 +1,5 @@
-# ---- Environment & secrets ----
-# Never commit real credentials. Keep the template as the only committed copy.
+# ---- Secrets & environment ----
+# Never commit real credentials; .env.example is the only committed template.
 .env
 .env.*
 !.env.example
@@ -12,12 +12,14 @@ __pycache__/
 .eggs/
 build/
 dist/
+
+# ---- Virtual environments ----
 .venv/
 venv/
 env/
 ENV/
 
-# ---- Local database (SQLite) ----
+# ---- Local databases ----
 *.db
 *.sqlite
 *.sqlite3
@@ -26,14 +28,25 @@ instance/
 # ---- Tests, linting & coverage ----
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.tox/
 .coverage
 .coverage.*
-htmlcov/
 coverage.xml
-.tox/
-.mypy_cache/
+htmlcov/
 
-# ---- Logs & OS noise ----
-*.log
+# ---- Editors & IDEs ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---- OS noise ----
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ---- Logs & archives ----
+*.log
+*.zip
