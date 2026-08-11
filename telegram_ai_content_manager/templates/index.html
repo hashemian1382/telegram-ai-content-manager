@@ -14,7 +14,7 @@
           <h1>Telegram AI Content Manager</h1>
           <p class="subtitle">جمع‌آوری، انتخاب و انتشار محتوای کانال</p>
         </div>
-        <button class="primary" onclick="scrape()">↻ دریافت پست‌ها</button>
+        <button id="scrapeBtn" class="primary" onclick="scrape()">↻ دریافت پست‌ها</button>
       </header>
       <section class="stats" id="stats"></section>
       <section class="grid">
@@ -39,7 +39,7 @@
           </div>
           <p class="muted">
             یک پست متنی به‌طور تصادفی از دیتابیس انتخاب می‌شود، قابل ویرایش است
-            و فقط با تأیید شما منتشر می‌شود.
+            و فقط با تأیید شما منتشر می‌شود. همچنین می‌توانید با هوش مصنوعی و مدل‌های Gemini و Gemma پست بسازید.
           </p>
           <div class="create-tabs">
             <button class="secondary" onclick="showMode('direct')">

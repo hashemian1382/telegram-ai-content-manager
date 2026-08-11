@@ -1,5 +1,18 @@
 let activeDraft = null;
+let sourcePosts = [];
+let aiModelsList = [
+  { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash" },
+  { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash" },
+  { id: "gemini-3-flash", name: "Gemini 3 Flash" },
+  { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite" },
+  { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite" },
+  { id: "gemma-4-31b", name: "Gemma 4 31B" },
+  { id: "gemma-4-26b", name: "Gemma 4 26B" },
+];
+let defaultAiModelId = "gemini-3.6-flash";
+
 const $ = (s) => document.querySelector(s);
+
 const api = async (url, opts = {}) => {
   const r = await fetch(url, {
     headers: { "Content-Type": "application/json" },
@@ -9,24 +22,34 @@ const api = async (url, opts = {}) => {
   if (!r.ok) throw Error(d.error || "Request failed");
   return d;
 };
+
 function toast(t) {
   const e = $("#toast");
   e.textContent = t;
   e.classList.add("show");
   setTimeout(() => e.classList.remove("show"), 3200);
 }
+
 function esc(s) {
   const d = document.createElement("div");
-  d.textContent = s;
+  d.textContent = s || "";
   return d.innerHTML;
 }
+
 async function load() {
   try {
-    const [data, channels, drafts] = await Promise.all([
+    const [data, channels, drafts, modelsData] = await Promise.all([
       api("/api/dashboard"),
       api("/api/channels"),
       api("/api/drafts"),
+      api("/api/models").catch(() => null),
     ]);
+
+    if (modelsData && modelsData.models && modelsData.models.length) {
+      aiModelsList = modelsData.models;
+      defaultAiModelId = modelsData.default_model || aiModelsList[0].id;
+    }
+
     $("#stats").innerHTML = [
       ["کانال منبع", data.channels],
       ["پست‌های ذخیره‌شده", data.posts],
@@ -35,6 +58,7 @@ async function load() {
     ]
       .map((x) => `<div class="stat"><b>${x[1]}</b><span>${x[0]}</span></div>`)
       .join("");
+
     $("#channelCount").textContent = `${channels.length} کانال`;
     $("#channels").innerHTML = channels.length
       ? channels
@@ -44,6 +68,7 @@ async function load() {
           )
           .join("")
       : '<p class="muted">هنوز کانالی اضافه نشده است.</p>';
+
     $("#drafts").innerHTML = drafts.length
       ? drafts
           .map(
@@ -52,13 +77,17 @@ async function load() {
           )
           .join("")
       : '<p class="muted">پیش‌نویسی وجود ندارد.</p>';
+
     window.drafts = drafts;
   } catch (e) {
     toast(e.message);
   }
 }
+
 async function addChannel(e) {
   e.preventDefault();
+  const btn = e.target.querySelector("button");
+  if (btn) btn.disabled = true;
   try {
     await api("/api/channels", {
       method: "POST",
@@ -66,50 +95,78 @@ async function addChannel(e) {
     });
     $("#channel").value = "";
     toast("کانال اضافه شد.");
-    load();
+    await load();
   } catch (e) {
     toast(e.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
+
 async function removeChannel(id) {
   if (!confirm("کانال و پست‌های ذخیره‌شده‌اش حذف شوند؟")) return;
   try {
     await api("/api/channels/" + id, { method: "DELETE" });
-    load();
+    toast("کانال حذف شد.");
+    await load();
   } catch (e) {
     toast(e.message);
   }
 }
+
 async function scrape() {
+  const btn = $("#scrapeBtn");
+  if (btn) btn.disabled = true;
   try {
     toast("دریافت پست‌ها شروع شد…");
     const d = await api("/api/scrape", { method: "POST" });
-    toast(`${d.new} پست جدید ذخیره شد.`);
-    load();
+    if (d.errors && d.errors.length) {
+      toast(`${d.new} پست جدید ذخیره شد (${d.errors.length} خطا در برخی کانال‌ها)`);
+    } else {
+      toast(`${d.new} پست جدید از ${d.channels} کانال ذخیره شد.`);
+    }
+    await load();
   } catch (e) {
     toast(e.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
+
 async function randomDraft() {
   try {
     activeDraft = await api("/api/drafts/random", { method: "POST" });
     renderComposer();
-    load();
+    await load();
+    toast("پیش‌نویس تصادفی بارگذاری شد.");
   } catch (e) {
     toast(e.message);
   }
 }
+
 function openDraft(id) {
   activeDraft = window.drafts.find((x) => x.id === id);
   renderComposer();
 }
+
 function renderComposer() {
   if (!activeDraft) return;
   const published = activeDraft.status === "published";
-  $("#composer").className = "composer";
-  $("#composer").innerHTML =
-    `${activeDraft.source_url ? `<a class="muted" target="_blank" href="${activeDraft.source_url}">مشاهده منبع</a>` : ""}<textarea id="draftText" ${published ? "disabled" : ""}>${esc(activeDraft.text)}</textarea><div class="actions">${published ? '<span class="status">این پست منتشر شده است</span>' : `<button class="secondary" onclick="saveDraft()">ذخیره تغییرات</button><button class="primary" onclick="publishDraft()">انتشار در کانال</button>`}</div>`;
+  const el = $("#composer");
+  el.className = "composer";
+  el.innerHTML = `${
+    activeDraft.source_url
+      ? `<a class="muted" target="_blank" href="${activeDraft.source_url}">مشاهده منبع</a>`
+      : ""
+  }<textarea id="draftText" ${published ? "disabled" : ""}>${esc(
+    activeDraft.text,
+  )}</textarea><div class="actions">${
+    published
+      ? '<span class="status">این پست منتشر شده است</span>'
+      : `<button class="secondary" onclick="saveDraft()">ذخیره تغییرات</button><button class="primary" onclick="publishDraft()">انتشار در کانال</button>`
+  }</div>`;
 }
+
 async function saveDraft() {
   try {
     activeDraft = await api("/api/drafts/" + activeDraft.id, {
@@ -117,11 +174,12 @@ async function saveDraft() {
       body: JSON.stringify({ text: $("#draftText").value }),
     });
     toast("پیش‌نویس ذخیره شد.");
-    load();
+    await load();
   } catch (e) {
     toast(e.message);
   }
 }
+
 async function publishDraft() {
   if (!confirm("این متن اکنون در کانال منتشر شود؟")) return;
   try {
@@ -131,13 +189,12 @@ async function publishDraft() {
     });
     renderComposer();
     toast("پست با موفقیت منتشر شد.");
-    load();
+    await load();
   } catch (e) {
     toast(e.message);
   }
 }
-load();
-let sourcePosts = [];
+
 async function showMode(mode) {
   const c = $("#creation");
   if (mode === "direct") {
@@ -151,10 +208,58 @@ async function showMode(mode) {
       toast(e.message);
     }
   }
-  const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
-  c.innerHTML = `<div class="ai-form"><label>موضوع</label><input id="aiTopic" placeholder="مثلاً تازه‌ترین پژوهش‌ها درباره انرژی خورشیدی"><label>مدل</label><select id="aiModel">${models.map((m) => `<option>${m}</option>`).join("")}</select><label>لحن و طول</label><div style="display:flex;gap:8px"><select id="aiTone"><option value="professional">حرفه‌ای و علمی</option><option value="news">خبری و موجز</option><option value="friendly">صمیمی و آموزشی</option></select><select id="aiLength"><option value="short">کوتاه</option><option value="medium" selected>متوسط</option><option value="long">بلند</option></select></div><label>منابع اختیاری از پست‌های ذخیره‌شده</label><div class="source-picker">${sourcePosts.length ? sourcePosts.map((p) => `<label><input type="checkbox" value="${p.id}"> @${esc(p.channel)} — ${esc(p.text.slice(0, 100))}</label>`).join("") : "هنوز پستی در دیتابیس نیست."}</div><div class="create-actions"><button onclick="generateAi()">تولید پیش‌نویس</button></div></div>`;
+
+  const modelOptions = aiModelsList
+    .map(
+      (m) =>
+        `<option value="${m.id}" ${
+          m.id === defaultAiModelId ? "selected" : ""
+        }>${esc(m.name)} (${m.id})</option>`,
+    )
+    .join("");
+
+  c.innerHTML = `<div class="ai-form">
+    <label>موضوع</label>
+    <input id="aiTopic" placeholder="مثلاً تازه‌ترین پژوهش‌ها درباره انرژی خورشیدی">
+    <label>مدل هوش مصنوعی</label>
+    <select id="aiModel">${modelOptions}</select>
+    <label>لحن و طول</label>
+    <div style="display:flex;gap:8px">
+      <select id="aiTone">
+        <option value="professional">حرفه‌ای و علمی</option>
+        <option value="news">خبری و موجز</option>
+        <option value="friendly">صمیمی و آموزشی</option>
+      </select>
+      <select id="aiLength">
+        <option value="short">کوتاه</option>
+        <option value="medium" selected>متوسط</option>
+        <option value="long">بلند</option>
+      </select>
+    </div>
+    <label>منابع اختیاری از پست‌های ذخیره‌شده</label>
+    <div class="source-picker">
+      ${
+        sourcePosts.length
+          ? sourcePosts
+              .map(
+                (p) =>
+                  `<label><input type="checkbox" value="${p.id}"> @${esc(
+                    p.channel,
+                  )} — ${esc(p.text.slice(0, 100))}</label>`,
+              )
+              .join("")
+          : "هنوز پستی در دیتابیس نیست."
+      }
+    </div>
+    <div class="create-actions">
+      <button id="aiGenBtn" onclick="generateAi()">تولید پیش‌نویس با هوش مصنوعی</button>
+    </div>
+  </div>`;
 }
+
 async function createDirect() {
+  const btn = $("#creation button");
+  if (btn) btn.disabled = true;
   try {
     activeDraft = await api("/api/drafts/direct", {
       method: "POST",
@@ -163,17 +268,22 @@ async function createDirect() {
     $("#creation").innerHTML = "";
     renderComposer();
     toast("پیش‌نویس ساخته شد.");
-    load();
+    await load();
   } catch (e) {
     toast(e.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
+
 async function generateAi() {
+  const btn = $("#aiGenBtn");
+  if (btn) btn.disabled = true;
   try {
-    const b = [
+    const selectedSourceIds = [
       ...document.querySelectorAll(".source-picker input:checked"),
     ].map((x) => +x.value);
-    toast("در حال تولید پیش‌نویس با Gemini…");
+    toast("در حال تولید پیش‌نویس با هوش مصنوعی…");
     activeDraft = await api("/api/drafts/generate", {
       method: "POST",
       body: JSON.stringify({
@@ -181,14 +291,18 @@ async function generateAi() {
         model: $("#aiModel").value,
         tone: $("#aiTone").value,
         length: $("#aiLength").value,
-        source_post_ids: b,
+        source_post_ids: selectedSourceIds,
       }),
     });
     $("#creation").innerHTML = "";
     renderComposer();
-    toast("پیش‌نویس AI آماده شد.");
-    load();
+    toast("پیش‌نویس هوش مصنوعی آماده شد.");
+    await load();
   } catch (e) {
     toast(e.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
+
+load();

@@ -1,6 +1,7 @@
 """Telegram AI Content Manager — application factory."""
 
 import os
+from pathlib import Path
 
 from flask import Flask
 
@@ -13,15 +14,24 @@ def create_app(test_config: dict | None = None) -> Flask:
     """Create and configure the Flask application."""
     load_env()
     app = Flask(__name__)
+
+    db_uri = database_url()
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", "change-me-in-production"),
-        SQLALCHEMY_DATABASE_URI=database_url(),
+        SQLALCHEMY_DATABASE_URI=db_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SCRAPER_LIMIT=int(os.getenv("SCRAPER_LIMIT", "10")),
         SCRAPER_TIMEOUT=float(os.getenv("SCRAPER_TIMEOUT", "20")),
     )
     if test_config:
         app.config.update(test_config)
+
+    # Automatically create instance folder for local sqlite file if needed
+    if db_uri.startswith("sqlite:///") and not db_uri.startswith("sqlite:////") and "memory" not in db_uri:
+        db_path = db_uri.split("sqlite:///", 1)[1]
+        if "/" in db_path:
+            parent_dir = Path(app.root_path).parent / Path(db_path).parent
+            parent_dir.mkdir(parents=True, exist_ok=True)
 
     db.init_app(app)
     app.register_blueprint(web)

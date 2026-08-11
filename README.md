@@ -65,7 +65,7 @@ Copy `.env.example` to `.env` and fill in what you need. **Never commit `.env`.*
 | `TELEGRAM_BOT_TOKEN` | Publishing | Bot token from [@BotFather](https://t.me/BotFather) | — |
 | `TELEGRAM_CHANNEL_ID` | Publishing | Target channel `@username` or numeric chat id (bot must be an admin) | — |
 | `GEMINI_API_KEY` | AI drafting | API key from <https://aistudio.google.com/apikey> | — |
-| `GEMINI_MODELS` | AI drafting | Comma-separated model list offered in the UI | `gemini-2.5-flash,gemini-2.5-flash-lite` |
+| `GEMINI_MODELS` | AI drafting | Comma-separated model list offered in the UI | `gemini-3.6-flash,gemini-3.5-flash,gemini-3-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemma-4-31b,gemma-4-26b` |
 | `SCRAPER_LIMIT` | — | Latest public posts fetched per channel per run | `10` |
 | `SCRAPER_TIMEOUT` | — | Per-channel scrape timeout in seconds | `20` |
 
@@ -121,6 +121,7 @@ gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | `GET` | `/health` | Deployment health check |
+| `GET` | `/api/models` | List enabled Gemini and Gemma AI models |
 | `GET` / `POST` | `/api/channels` | List or add public source channels |
 | `DELETE` | `/api/channels/<id>` | Remove a source channel and its saved posts |
 | `POST` | `/api/scrape` | Collect available source posts now |
@@ -142,13 +143,13 @@ pyproject.toml              Dependencies and tool configuration
 Procfile / render.yaml      Deployment (Heroku-style / Render Blueprint)
 telegram_ai_content_manager/
   __init__.py               Application factory
-  config.py                 .env loading and database URL helpers
-  models.py                 Database setup and SQLAlchemy models
-  routes.py                 Web dashboard and JSON API routes
-  services.py               Scraping, Gemini drafting, Telegram publishing
-  static/                   Dashboard assets
-  templates/                Dashboard template
-tests/                      External-call-free tests
+  config.py                 .env loading, model configurations, and DB helpers
+  models.py                 Database setup, SQLAlchemy models, and serialization
+  routes/                   Web dashboard and JSON REST API blueprints (api.py, web.py)
+  services/                 Scraping, AI drafting (7 Gemini/Gemma models), Telegram publishing
+  static/                   Dashboard assets (CSS & JS)
+  templates/                Dashboard template (index.html)
+tests/                      Unit and integration tests (test_app.py, test_models.py, test_services.py)
 .github/workflows/ci.yml    Test and lint workflow
 .devcontainer/              GitHub Codespaces configuration
 ```
